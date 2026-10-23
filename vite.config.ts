@@ -5,7 +5,23 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import packageJson from './package.json';
 import { execSync } from 'node:child_process';
 
-const commitHash = execSync('git rev-parse --short HEAD').toString().trim();
+// Tofu gallery change (2026-10-23): a copy built from a source archive has no
+// .git folder, where `git rev-parse` throws and stopped the build. Fall back to
+// the host's commit variable, then to 'main' (the header links this value to
+// the upstream repository's tree).
+function readCommitHash(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', {
+      stdio: ['ignore', 'pipe', 'ignore']
+    })
+      .toString()
+      .trim();
+  } catch {
+    return process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'main';
+  }
+}
+
+const commitHash = readCommitHash();
 
 // https://vitejs.dev/config https://vitest.dev/config
 export default defineConfig({
